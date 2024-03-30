@@ -15,21 +15,20 @@ My CV in [pdf](https://drive.google.com/file/d/1HYL9GTD-2g-u9s5xxVNp6TvTxPiAwOY9
 This is a repository to showcase skills, share projects and track my progress in Data Analytics / Data Science related topics.
 
 ## Education
-University of Colorado, Boulder: 
-Master of Science - MS, Data Science,
-Dec 2022 - Dec 2024
+Gujarat Technological University: 
+Bachelor of Engineering 
+July 2012 - June 2016
 
-The University of the West Indies, Mona:
-Bachelor's degree, Biochemistry and Molecular Biology,
-2019 - 2022
-
-Pre University School:
-Associate's degree, Science and Mathematics,
-2017 - 2019
+Figertips Institute
+Data Science Pro
+Feb 2022 - Dec 2022
 
 ## Certificates
 - [Google Data Analytics Professional Certificate](https://www.coursera.org/account/accomplishments/specialization/V5ZM4LJYUWN4) (June 2022) (Coursera - Google)
+- [Data Science Pro](https://drive.google.com/drive/search?q=fingertip) (Dec 2022) (Fingertips Institute)
+- [Data Engineering](https://drive.google.com/file/d/1bxMvlJEBCkwnHWvAyNAMj7zUoi62Ycl_/view) (Apr 2023) (Mangtas)
 
 ## Contacts
 - LinkedIn: [Hardik Vaghela](https://www.linkedin.com/in/hardik-vaghela004/)
 - Email: hgv004@gmail.com
+- Dashboards : [NovyPro](https://www.novypro.com/profile_projects/hardikvaghela-1)
