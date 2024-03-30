@@ -14,6 +14,11 @@ My CV in [pdf](https://drive.google.com/file/d/1HYL9GTD-2g-u9s5xxVNp6TvTxPiAwOY9
 
 This is a repository to showcase skills, share projects and track my progress in Data Analytics / Data Science related topics.
 
+## My Technology Stack:
+Power BI / DAX / Power Query / SQL / Python / Tableau / Snowflake/
+Looker studio / Zoho Analytics / AWS Glue / Advance Excel / AWS Quicksight
+Azure Data Factory / Trifacta / Stitch data
+
 ## Education
 Gujarat Technological University: 
 Bachelor of Engineering 
