@@ -139,3 +139,132 @@ from data_mart.weekly_sales_clean
 where transactions is not null
 group by year(dates);
 ```
+
+## 3. **Before & After Analysis**
+- This technique is usually used when we inspect an important event and want to inspect the impact before and after a certain point in time.
+
+- Taking the week_date value of 2020-06-15 as the baseline week where the Data Mart sustainable packaging changes came into effect.
+
+- We would include all week_date values for 2020-06-15 as the start of the period after the change and the previous week_date values would be before
+
+- Using this analysis approach - answer the following questions:
+
+#### 1. What is the total sales for the 4 weeks before and after 2020-06-15? What is the growth or reduction rate in actual values and percentage of sales?
+```sql
+select	sum(iif(dates between dateadd(week, -4, '2020-06-15') and '2020-06-08', cast(sales as bigint),0)) as before_sales,
+		sum(iif(dates between '2020-06-15' and dateadd(week, 3, '2020-06-15'), cast(sales as bigint),0)) as after_sales,
+		100 - ((sum(iif(dates between '2020-06-15' and dateadd(week, 3, '2020-06-15'), cast(sales as bigint),0))
+		/
+		sum(iif(dates between dateadd(week, -4, '2020-06-15') and '2020-06-08', cast(sales as decimal),0)))*100) as pct
+from data_mart.weekly_sales_clean;
+```
+#### 2. What about the entire 12 weeks before and after?
+```sql
+select	sum(iif(dates between dateadd(week, -12, '2020-06-15') and '2020-06-08', cast(sales as bigint),0)) as before_sales,
+		sum(iif(dates between '2020-06-15' and dateadd(week, 11, '2020-06-15'), cast(sales as bigint),0)) as after_sales,
+		100 - ((sum(iif(dates between '2020-06-15' and dateadd(week, 11, '2020-06-15'), cast(sales as bigint),0))
+		/
+		sum(iif(dates between dateadd(week, -12, '2020-06-15') and '2020-06-08', cast(sales as decimal),0)))*100) as pct
+from data_mart.weekly_sales_clean;
+```
+#### 3. How do the sale metrics for these 2 periods before and after compare with the previous years in 2018 and 2019?
+```sql
+-- For 4 weeks
+select	year(dates), 
+		sum(iif(wk_no between 21 and 24, cast(sales as bigint),0)) before_sales,
+		sum(iif(wk_no between 25 and 28, cast(sales as bigint),0)) after_sales,
+		(sum(iif(wk_no between 25 and 28, cast(sales as bigint),0)) -
+		sum(iif(wk_no between 21 and 24, cast(sales as bigint),0))) as sales_diff,
+		((sum(iif(wk_no between 25 and 28, cast(sales as decimal(10,2)),0)) /
+		sum(iif(wk_no between 21 and 24, cast(sales as bigint),0)))*100) - 100 as pct
+from data_mart.weekly_sales_clean
+where year(dates) < 2021
+group by year(dates)
+order by year(dates);
+
+-- For 12 weeks 
+select	year(dates), 
+		sum(iif(wk_no between 13 and 24, cast(sales as bigint),0)) before_sales,
+		sum(iif(wk_no between 25 and 36, cast(sales as bigint),0)) after_sales,
+		(sum(iif(wk_no between 25 and 36, cast(sales as bigint),0)) -
+		sum(iif(wk_no between 13 and 24, cast(sales as bigint),0))) as sales_diff,
+		((sum(iif(wk_no between 25 and 36, cast(sales as decimal(10,2)),0)) /
+		sum(iif(wk_no between 13 and 24, cast(sales as bigint),0)))*100) - 100 as pct
+from data_mart.weekly_sales_clean
+where year(dates) < 2021
+group by year(dates)
+order by year(dates);
+```
+## 4. **Bonus Question**
+#### Which areas of the business have the highest negative impact in sales metrics performance in 2020 for the 12 week before and after period?
+
+- region
+- platform
+- age_band
+- demographic
+- customer_type
+```sql
+CREATE PROCEDURE data_mart.Before_after
+    @weeks INT
+AS
+BEGIN
+    select	year(dates), 
+		sum(iif(wk_no between 25 - @weeks and 24, cast(sales as bigint),0)) before_sales,
+		sum(iif(wk_no between 25 and 24 + @weeks, cast(sales as bigint),0)) after_sales,
+		(sum(iif(wk_no between 25 and 24 + @weeks, cast(sales as bigint),0)) -
+		sum(iif(wk_no between 25 - @weeks and 24, cast(sales as bigint),0))) as sales_diff,
+		((sum(iif(wk_no between 25 and 24 + @weeks, cast(sales as decimal(10,2)),0)) /
+		sum(iif(wk_no between 25 - @weeks and 24, cast(sales as bigint),0)))*100) - 100 as pct
+	from data_mart.weekly_sales_clean
+	where year(dates) < 2021
+	group by year(dates)
+	order by year(dates);
+END;
+
+exec data_mart.Before_after @weeks =4;
+
+-- Bonus Question
+CREATE PROCEDURE data_mart.Before_after_column
+    @weeks INT, @column nvarchar(50)
+AS
+BEGIN
+	select	@column,
+			((sum(iif(wk_no between 25 and 24 + @weeks, cast(sales as decimal(10,2)),0)) /
+			sum(iif(wk_no between 25 - @weeks and 24, cast(sales as bigint),0)))*100) - 100 as pct
+	from data_mart.weekly_sales_clean
+	where year(dates) = 2020 and sales is not null
+	group by @column
+	order by pct
+end;
+
+select	top 1 region,
+		((sum(iif(wk_no between 25 and 36, cast(sales as decimal(10,2)),0)) /
+		sum(iif(wk_no between 13 and 24, cast(sales as bigint),0)))*100) - 100 as pct
+from data_mart.weekly_sales_clean
+where year(dates) = 2020 and sales is not null
+group by region
+order by pct
+
+CREATE PROCEDURE data_mart.Before_after_column
+    @weeks INT, @column nvarchar(50)
+AS
+BEGIN
+	DECLARE @sql NVARCHAR(MAX);
+	SET @sql = N'
+		SELECT top 1 +' + QUOTENAME(@column) + ',
+			((SUM(IIF(wk_no BETWEEN 25 AND 24 + ' + CAST(@weeks AS NVARCHAR(10)) + ', CAST(sales AS DECIMAL(10,2)), 0)) /
+			SUM(IIF(wk_no BETWEEN 25 - ' + CAST(@weeks AS NVARCHAR(10)) + ' AND 24, CAST(sales AS BIGINT), 0))) * 100) - 100 AS pct
+		FROM data_mart.weekly_sales_clean
+		WHERE YEAR(dates) = 2020 AND sales IS NOT NULL
+		GROUP BY ' + QUOTENAME(@column) + '
+		ORDER BY pct';
+	EXEC sp_executesql @sql;
+END;
+drop procedure data_mart.Before_after_column
+
+exec data_mart.Before_after_column @weeks =12, @column = 'platform' ;
+exec data_mart.Before_after_column @weeks =12, @column = 'region';
+exec data_mart.Before_after_column @weeks =12, @column = 'age_band';
+exec data_mart.Before_after_column @weeks =12, @column = 'demographic';
+exec data_mart.Before_after_column @weeks =12, @column = 'customer_type';
+```
