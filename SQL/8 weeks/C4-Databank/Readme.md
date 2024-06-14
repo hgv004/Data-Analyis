@@ -71,6 +71,26 @@ FROM date_diff
 ORDER BY region_name;
 ```
 ## **B. Customer Transactions**
+### Customer Balance table
+```sql
+create or replace table cust_bal as (
+SELECT
+    txn_date as from_date,
+    ifnull(lead(txn_date) over(PARTITION BY customer_id order by txn_date) -1,last_day(txn_date))  as to_date,
+    customer_id,
+    sum(
+      if(txn_type = 'deposit', txn_amount, 0 - txn_amount)
+    ) over(
+      partition by customer_id
+      order by
+        txn_date rows between unbounded preceding
+        and current row
+    ) as running_bal
+  FROM
+    data_bank.customer_transactions
+  order by
+    customer_id, txn_date)
+```
 
 ### 1. What is the unique count and total amount for each transaction type?
 ```sql
@@ -190,7 +210,14 @@ where cte3.lb_check =1;
 ## **C. Data Allocation Challenge**
 
 To test out a few different hypotheses - the Data Bank team wants to run an experiment where different groups of customers would be allocated data using 3 different options:
-
+### Date-Range Table 
+```sql
+CREATE or replace TEMPORARY VIEW date_range AS (
+  SELECT explode(sequence((SELECT MIN(txn_date) FROM data_bank.customer_transactions), 
+                          (SELECT MAX(txn_date) FROM data_bank.customer_transactions), 
+                          interval 1 day)) AS date
+);
+```
 - Option 1: data is allocated based off the amount of money at the end of the previous month
 ```sql
 with month_end_dates as (
