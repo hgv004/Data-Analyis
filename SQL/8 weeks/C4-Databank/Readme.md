@@ -102,6 +102,7 @@ SELECT
   order by
     customer_id, txn_date)
 ```
+![image](https://github.com/hgv004/Data-Analyis/assets/105195779/150acc72-1e58-4229-81e5-1b21ad121912)
 
 ### 1. What is the unique count and total amount for each transaction type?
 ```sql
@@ -179,6 +180,8 @@ CREATE or replace TEMPORARY VIEW date_range AS (
                           interval 1 day)) AS date
 );
 ```
+![image](https://github.com/hgv004/Data-Analyis/assets/105195779/70ad5abb-1cc8-4438-b506-6363cf16e8a0)
+
 ### Option 1: data is allocated based off the amount of money at the end of the previous month
 - I extracted last day of each month and joined with the cust_balance table with joining condition of the ending date falling between the from date to to_date values from the cust_balance table.
 ```sql
