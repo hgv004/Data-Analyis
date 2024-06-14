@@ -78,6 +78,7 @@ select txn_type , sum(txn_amount) as total_amt, count(customer_id) as unique_cou
 from customer_transactions ct 
 group by txn_type;
 ```
+
 ### 2. What is the average total historical deposit counts and amounts for all customers?
 ```sql
 with cte as (
@@ -202,8 +203,81 @@ where cte3.lb_check =1;
 To test out a few different hypotheses - the Data Bank team wants to run an experiment where different groups of customers would be allocated data using 3 different options:
 
 - Option 1: data is allocated based off the amount of money at the end of the previous month
+```sql
+with month_end_dates as (
+  select distinct last_day(txn_date) as month_dates
+FROM
+    data_bank.customer_transactions
+order by 1)
+select
+  m.month_dates as prev_month_end_date,
+  m.month_dates+1 as curr_month_date, sum(c.running_bal) as data_required
+from
+  cust_bal c
+left join month_end_dates m
+on m.month_dates between c.from_date and c.to_date
+where month_dates is not null
+group by 1,2
+order by 1;
+```
+![image](https://github.com/hgv004/Data-Analyis/assets/105195779/d508f48f-31ef-4a5c-9ce9-c9126dc32ed9)
+
 - Option 2: data is allocated on the average amount of money kept in the account in the previous 30 days
+ ```sql
+ with past_30days_avg_table as(
+  SELECT
+    d.date,
+    c.customer_id,
+    c.running_bal,
+    round(
+      avg(c.running_bal) over(
+        PARTITION BY c.customer_id
+        order by
+          d.date rows between 30 preceding
+          and current row
+      ),
+      1
+    ) past_30days_avg
+  FROM
+    date_range d
+    left join cust_bal c on d.date BETWEEN c.from_date
+    and c.to_date
+)
+select
+  date(date_trunc('month', p.date)) as month,
+  round(sum(p.past_30days_avg),0) as data_required
+from
+  past_30days_avg_table p
+group by
+  1
+order by
+  1;
+  ```
+![image](https://github.com/hgv004/Data-Analyis/assets/105195779/20d54ea0-b863-4c59-b8db-f1d5140d8e05)
+
 - Option 3: data is updated real-time
+```sql
+with daily_bal_table as(
+  SELECT
+    d.date,
+    c.customer_id,
+    c.running_bal
+  FROM
+    date_range d
+    left join cust_bal c on d.date BETWEEN c.from_date
+    and c.to_date
+)
+select
+  date(date_trunc('month', d.date)) as month,
+  round(sum(d.running_bal),0) as data_required
+from
+  daily_bal_table d
+group by
+  1
+order by
+  1;
+```
+![image](https://github.com/hgv004/Data-Analyis/assets/105195779/c8b3badd-9e7d-475a-915a-deb75d1e1140)
 
 For this multi-part challenge question - you have been requested to generate the following data elements to help the Data Bank team estimate how much data will need to be provisioned for each option:
 
@@ -251,6 +325,7 @@ group by 1;
 
 ### 4. Using all of the data available - how much data would have been required for each option on a monthly basis?
 ```sql
+
 ```
 ## **D. Extra Challenge**
 
@@ -258,7 +333,26 @@ group by 1;
 
 ### If the annual interest rate is set at 6% and the Data Bank team wants to reward its customers by increasing their data allocation based off the interest calculated on a daily basis at the end of each day, how much data would be required for this option on a monthly basis?
 ```sql
-
+with daily_bal_table as(
+  SELECT
+    d.date,
+    c.customer_id,
+    c.running_bal,
+    if(c.running_bal > 0, (0.06/365)*running_bal, 0) as interest_earn
+  FROM
+    date_range d
+    left join cust_bal c on d.date BETWEEN c.from_date
+    and c.to_date
+)
+select
+  date(date_trunc('month', d.date)) as month,
+  round(sum(d.running_bal + d.interest_earn),0) as data_required
+from
+  daily_bal_table d
+group by
+  1
+order by
+  1;
 ```
 
 
