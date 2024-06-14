@@ -54,6 +54,8 @@ select avg(datediff(end_date, start_date)) as avg_days
 from customer_nodes cn 
 where year(end_date) !=9999;
 ```
+![image](https://github.com/hgv004/Data-Analyis/assets/105195779/58bf0dab-385b-4276-a8ec-42a0d3976b36)
+
 ### 5. What is the median, 80th and 95th percentile for this same reallocation days metric for each region?
 ```sql
 WITH date_diff AS
@@ -75,7 +77,11 @@ SELECT DISTINCT region_id,
 FROM date_diff
 ORDER BY region_name;
 ```
+![image](https://github.com/hgv004/Data-Analyis/assets/105195779/9f3e6bb3-0d1e-4f92-8df1-17fa8037c8e7)
+
 ## **B. Customer Transactions**
+- In Order to eliminate repeatative Query I made one Customer balance table which tells us about the customer balance between 2 dates "from_date" and "to_date"
+- Assumed the last date of customer transaction is the highest date value from the table
 ### Customer Balance table
 ```sql
 create or replace table cust_bal as (
@@ -103,6 +109,7 @@ select txn_type , sum(txn_amount) as total_amt, count(customer_id) as unique_cou
 from customer_transactions ct 
 group by txn_type;
 ```
+![image](https://github.com/hgv004/Data-Analyis/assets/105195779/59f09312-14fa-4588-b477-0a4c870ec5fe)
 
 ### 2. What is the average total historical deposit counts and amounts for all customers?
 ```sql
@@ -115,6 +122,8 @@ with cte as (
 select avg(cte.deposits) avg_deposit_count, avg(cte.total_amt) avg_deposit_amount
 from cte;
 ```
+![image](https://github.com/hgv004/Data-Analyis/assets/105195779/c3ed6d26-3032-4422-8b0e-34f2b0fda1c3)
+
 ### 3. For each month - how many Data Bank customers make more than 1 deposit and either 1 purchase or 1 withdrawal in a single month?
 ```sql
 with cte as (
@@ -132,6 +141,8 @@ from cte
 group by cte.my
 order by cte.my;
 ```
+![image](https://github.com/hgv004/Data-Analyis/assets/105195779/21eabf2d-9958-4888-81cf-981d21da42b2)
+
 ### 4. What is the closing balance for each customer at the end of the month?
 ```sql
 swith month_end_dates as (
@@ -150,6 +161,8 @@ on m.month_dates between c.from_date and c.to_date
 where month_dates is not null
 order by 2, 1;
 ```
+![image](https://github.com/hgv004/Data-Analyis/assets/105195779/c1530ab4-96b0-4f55-9c1a-ea9bb59d6e4d)
+
 ### 5. What is the percentage of customers who increase their closing balance by more than 5%?
 ```sql
 with cte as (
