@@ -165,69 +165,12 @@ order by 2, 1;
 
 ### 5. What is the percentage of customers who increase their closing balance by more than 5%?
 ```sql
-with cte as (
-	select 	DATE_FORMAT(txn_date, "%b-%y") as my,
-			last_day(txn_date) as ld,
-			customer_id ,
-			sum(if(txn_type = 'deposit', txn_amount ,0)) - 
-			sum(if(txn_type = 'purchase', txn_amount,0)) - 
-			sum(if(txn_type = 'withdrawal', txn_amount,0)) as fb
-	from customer_transactions ct 
-	group by my, ld, customer_id
-	order by customer_id, ld),
-cte2 as (
-	select 	cte.customer_id,
-			cte.my as "Month", 
-			cte.fb,
-			if(cte.fb >= 0.05*lag(fb) over(partition by cte.customer_id),1,0) as increase
-	from cte)
-select count(distinct cte2.customer_id) / (select count(distinct customer_id) from customer_transactions)
-from cte2
-where cte2.increase =1;
 
-with cte as (
-	select 	DATE_FORMAT(txn_date, "%b-%y") as my,
-			last_day(txn_date) as ld,
-			customer_id ,
-			sum(if(txn_type = 'deposit', txn_amount ,0)) - 
-			sum(if(txn_type = 'purchase', txn_amount,0)) - 
-			sum(if(txn_type = 'withdrawal', txn_amount,0)) as fb
-	from customer_transactions ct 
-	group by my, ld, customer_id
-	order by customer_id, ld),
-select 	cte.customer_id,
-		cte.my as "Month", 
-		cte.fb,
-		if(cte.fb >= 0.05*lag(fb) over(partition by cte.customer_id),1,0) as increase
-from cte;
-
-with cte as (
-	select 	DATE_FORMAT(txn_date, "%b-%y") as my,
-			last_day(txn_date) as ld,
-			customer_id ,
-			sum(if(txn_type = 'deposit', txn_amount ,0)) - 
-			sum(if(txn_type = 'purchase', txn_amount,0)) - 
-			sum(if(txn_type = 'withdrawal', txn_amount,0)) as fb
-	from customer_transactions ct 
-	group by my, ld, customer_id
-	order by customer_id, ld),
-cte2 as(
-	select 	cte.customer_id,
-			cte.ld,	
-			cte.my as "Month", 
-			sum(cte.fb) over(partition by cte.customer_id order by cte.ld rows between unbounded preceding  and current row) as final_balance
-	from cte),
-cte3 as (
-	select 	*, 
-			if(cte2.final_balance > 1.05*lag(cte2.final_balance) over(partition by cte2.customer_id), 1, 0) as lb_check
-	from cte2)
-count(distinct cte3.customer_id) / (select count(distinct customer_id) from customer_transactions)
-from cte3
-where cte3.lb_check =1;
 ```
 ## **C. Data Allocation Challenge**
 
-To test out a few different hypotheses - the Data Bank team wants to run an experiment where different groups of customers would be allocated data using 3 different options:
+- To test out a few different hypotheses - the Data Bank team wants to run an experiment where different groups of customers would be allocated data using 3 different options:
+- In Order to reduce redundant query I used Temp view which generates the date table which contains the dates ranging from min date of the table and max date.
 ### Date-Range Table 
 ```sql
 CREATE or replace TEMPORARY VIEW date_range AS (
@@ -236,7 +179,8 @@ CREATE or replace TEMPORARY VIEW date_range AS (
                           interval 1 day)) AS date
 );
 ```
-- Option 1: data is allocated based off the amount of money at the end of the previous month
+### Option 1: data is allocated based off the amount of money at the end of the previous month
+- I extracted last day of each month and joined with the cust_balance table with joining condition of the ending date falling between the from date to to_date values from the cust_balance table.
 ```sql
 with month_end_dates as (
   select distinct last_day(txn_date) as month_dates
@@ -256,7 +200,7 @@ order by 1;
 ```
 ![image](https://github.com/hgv004/Data-Analyis/assets/105195779/d508f48f-31ef-4a5c-9ce9-c9126dc32ed9)
 
-- Option 2: data is allocated on the average amount of money kept in the account in the previous 30 days
+### Option 2: data is allocated on the average amount of money kept in the account in the previous 30 days
  ```sql
  with past_30days_avg_table as(
   SELECT
@@ -289,7 +233,7 @@ order by
   ```
 ![image](https://github.com/hgv004/Data-Analyis/assets/105195779/20d54ea0-b863-4c59-b8db-f1d5140d8e05)
 
-- Option 3: data is updated real-time
+### Option 3: data is updated real-time
 ```sql
 with daily_bal_table as(
   SELECT
