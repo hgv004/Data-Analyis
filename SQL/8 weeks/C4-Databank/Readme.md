@@ -109,32 +109,21 @@ order by cte.my;
 ```
 ### 4. What is the closing balance for each customer at the end of the month?
 ```sql
-select 	DATE_FORMAT(txn_date, "%b-%y") as my,
-		customer_id ,
-		sum(if(txn_type = 'deposit', txn_amount ,0)) as deposit,
-		sum(if(txn_type = 'purchase', txn_amount,0)) as purchase,
-		sum(if(txn_type = 'withdrawal', txn_amount,0)) as withdrawal,
-		sum(if(txn_type = 'deposit', txn_amount ,0)) - 
-		sum(if(txn_type = 'purchase', txn_amount,0)) - 
-		sum(if(txn_type = 'withdrawal', txn_amount,0)) as final_balance
-from customer_transactions ct 
-group by my, last_day(txn_date), customer_id
-order by last_day(txn_date), customer_id;
-
-with cte as (
-	select 	DATE_FORMAT(txn_date, "%b-%y") as my,
-			last_day(txn_date) as ld,
-			customer_id ,
-			sum(if(txn_type = 'deposit', txn_amount ,0)) - 
-			sum(if(txn_type = 'purchase', txn_amount,0)) - 
-			sum(if(txn_type = 'withdrawal', txn_amount,0)) as fb
-	from customer_transactions ct 
-	group by my, ld, customer_id
-	order by customer_id, ld)
-select 	cte.customer_id,
-		cte.my as "Month", 
-		sum(cte.fb) over(partition by cte.customer_id order by cte.ld rows between unbounded preceding  and current row) as final_balance
-from cte;
+swith month_end_dates as (
+  select distinct last_day(txn_date) as month_dates
+FROM
+    data_bank.customer_transactions
+order by 1)
+select
+  m.month_dates as month_end_date,
+  c.customer_id,
+  c.running_bal as month_end_balance
+from
+  cust_bal c
+left join month_end_dates m
+on m.month_dates between c.from_date and c.to_date
+where month_dates is not null
+order by 2, 1;
 ```
 ### 5. What is the percentage of customers who increase their closing balance by more than 5%?
 ```sql
