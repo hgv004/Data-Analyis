@@ -26,6 +26,8 @@ The following case study questions include some general data exploration analysi
 select count(distinct node_id ) as unique_nodes
 from customer_nodes cn ;
 ```
+![image](https://github.com/hgv004/Data-Analyis/assets/105195779/f66de034-ac85-4ead-99b9-ddb013dd6269)
+
 ### 2. What is the number of nodes per region?
 ```sql
 select r.region_name , count(node_id) as node_counts
@@ -33,8 +35,9 @@ from customer_nodes cn
 join regions r 
 on r.region_id = cn.region_id 
 group by r.region_name ;
-
 ```
+![image](https://github.com/hgv004/Data-Analyis/assets/105195779/ebfcfe62-363b-4a8b-a67a-9e2bc3056a23)
+
 ### 3. How many customers are allocated to each region?
 ```sql
 select r.region_name , count(distinct customer_id) as customers
@@ -43,6 +46,8 @@ join regions r
 on r.region_id = cn.region_id 
 group by r.region_name ;
 ```
+![image](https://github.com/hgv004/Data-Analyis/assets/105195779/d9566672-2c42-43bb-9c55-ffc5f2decd6d)
+
 ### 4. How many days on average are customers reallocated to a different node?
 ```sql
 select avg(datediff(end_date, start_date)) as avg_days
