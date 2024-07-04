@@ -264,7 +264,7 @@ order by
 ```
 ![image](https://github.com/hgv004/Data-Analyis/assets/105195779/c8b3badd-9e7d-475a-915a-deb75d1e1140)
 
-For this multi-part challenge question - you have been requested to generate the following data elements to help the Data Bank team estimate how much data will need to be provisioned for each option:
+## For this multi-part challenge question - you have been requested to generate the following data elements to help the Data Bank team estimate how much data will need to be provisioned for each option:
 
 ### 1. Running customer balance column that includes the impact each transaction
 ```sql
@@ -308,10 +308,6 @@ from running_txn
 group by 1;
 ```
 
-### 4. Using all of the data available - how much data would have been required for each option on a monthly basis?
-```sql
-
-```
 ## **D. Extra Challenge**
 
 - Data Bank wants to try another option which is a bit more difficult to implement - they want to calculate data growth using an interest calculation, just like in a traditional savings account you might have with a bank.
@@ -338,24 +334,4 @@ group by
   1
 order by
   1;
-```
-
-
-
-### Special notes : 
-Data Bank wants an initial calculation which does not allow for compounding interest, however they may also be interested in a daily compounding interest calculation.
-```sql
-
-```
-## **Extension Request**
-
-The Data Bank team wants you to use the outputs generated from the above sections to create a quick Powerpoint presentation which will be used as marketing materials for both external investors who might want to buy Data Bank shares and new prospective customers who might want to bank with Data Bank.
-
-#### 1. Using the outputs generated from the customer node questions, generate a few headline insights which Data Bank might use to market its world-leading security features to potential investors and customers.
-```sql
-
-```
-#### 2. With the transaction analysis - prepare a 1 page presentation slide which contains all the relevant information about the various options for the data provisioning so the Data Bank management team can make an informed decision.
-```sql
-
 ```
