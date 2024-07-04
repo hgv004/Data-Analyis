@@ -206,6 +206,7 @@ group by 1,2
 order by 1;
 ```
 ![image](https://github.com/hgv004/Data-Analyis/assets/105195779/d508f48f-31ef-4a5c-9ce9-c9126dc32ed9)
+- Since the data needed is the sum of the balances from the previous month's end date for customers, the data required for February 2020 appears to be higher than for other months.
 
 ### Option 2: data is allocated on the average amount of money kept in the account in the previous 30 days
  ```sql
@@ -239,6 +240,7 @@ order by
   1;
   ```
 ![image](https://github.com/hgv004/Data-Analyis/assets/105195779/20d54ea0-b863-4c59-b8db-f1d5140d8e05)
+- For Option-2, Feb-2020 required higher data.
 
 ### Option 3: data is updated real-time
 ```sql
@@ -263,8 +265,10 @@ order by
   1;
 ```
 ![image](https://github.com/hgv004/Data-Analyis/assets/105195779/c8b3badd-9e7d-475a-915a-deb75d1e1140)
+- If we go with the Realtime data update, then We have higher data requirement for Jan-2020.
 
-## For this multi-part challenge question - you have been requested to generate the following data elements to help the Data Bank team estimate how much data will need to be provisioned for each option:
+## Multi-part challenge question 
+### You have been requested to generate the following data elements to help the Data Bank team estimate how much data will need to be provisioned for each option:
 
 ### 1. Running customer balance column that includes the impact each transaction
 ```sql
@@ -277,6 +281,9 @@ SELECT 	customer_id ,
 FROM customer_transactions
 order by customer_id , txn_date ;
 ```
+![image](https://github.com/hgv004/Data-Analyis/assets/105195779/df9a9c21-b7a7-4ab3-8a31-63ff4a9d5bfd)
+- Showing only 3 customers record in image
+
 ### 2. Customer balance at the end of each month
 ```sql
 with cte as (
@@ -292,6 +299,8 @@ select 	cte.customer_id ,
 		sum(cte.total_txn) over(partition by customer_id order by cte.ld) as month_balance
 from cte;
 ```
+![image](https://github.com/hgv004/Data-Analyis/assets/105195779/a0321123-6366-429a-b826-26dcdcb8104f)
+
 ### 3. Minimum, average and maximum values of the running balance for each customer
 ```sql
 with running_txn as (
@@ -307,12 +316,13 @@ select  customer_id,
 from running_txn
 group by 1;
 ```
+![image](https://github.com/hgv004/Data-Analyis/assets/105195779/c38192a8-e22f-4504-ba35-bb64740b9889)
 
 ## **D. Extra Challenge**
 
 - Data Bank wants to try another option which is a bit more difficult to implement - they want to calculate data growth using an interest calculation, just like in a traditional savings account you might have with a bank.
 
-### If the annual interest rate is set at 6% and the Data Bank team wants to reward its customers by increasing their data allocation based off the interest calculated on a daily basis at the end of each day, how much data would be required for this option on a monthly basis?
+- If the annual interest rate is set at 6% and the Data Bank team wants to reward its customers by increasing their data allocation based off the interest calculated on a daily basis at the end of each day, how much data would be required for this option on a monthly basis?
 ```sql
 with daily_bal_table as(
   SELECT
@@ -335,3 +345,5 @@ group by
 order by
   1;
 ```
+![image](https://github.com/hgv004/Data-Analyis/assets/105195779/3a11eb74-b883-4cdd-b83d-4af4f79b40b5)
+
