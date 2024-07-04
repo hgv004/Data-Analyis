@@ -170,8 +170,32 @@ order by 2, 1;
 
 ### 5. What is the percentage of customers who increase their closing balance by more than 5%?
 ```sql
-
+with month_end_dates as (
+  select
+    last_day(date) as last_date
+  from
+    date_range d
+  group by
+    1
+),
+customers_filters as (
+select
+  m.last_date,
+  c.customer_id,
+  c.running_bal,
+  lag(c.running_bal) over(partition by c.customer_id order by m.last_date) as prev_month_bal,
+  ((c.running_bal / lag(c.running_bal) over(partition by c.customer_id order by m.last_date)) - 1)>0.05 diff_pct
+FROM
+  month_end_dates m
+  left join cust_bal c on m.last_date BETWEEN c.from_date
+  and c.to_date
+  qualify diff_pct =true)
+select round((count(distinct customer_id) / (select count (distinct customer_id) from data_bank.customer_nodes))*100,1) as cust_share
+  from customers_filters;
 ```
+![image](https://github.com/hgv004/Data-Analyis/assets/105195779/8e20e8b9-34a8-4fa2-b721-ae88639af2f9)
+
+- 75.8 % customers have increased their last month balance to 5 % or more.
 ## **C. Data Allocation Challenge**
 
 - To test out a few different hypotheses - the Data Bank team wants to run an experiment where different groups of customers would be allocated data using 3 different options:
