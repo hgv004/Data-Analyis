@@ -315,70 +315,92 @@ from runner_orders1 ro
 group by runner_id;
 ```
 ## **C. Ingredient Optimisation**
+### Transforming the pizza_recipes table
+```sql
+-- Create a temporary view for demonstration
+CREATE OR REPLACE TEMP VIEW temp_pizza_recipes AS
+SELECT pizza_id, split(toppings, ', ') AS toppings_array
+FROM pizza_runner.pizza_recipes;
 
+-- Query to unnest the toppings array using TRANSFORM and LATERAL VIEW
+create or replace table pizza_runner.pizza_recipes as
+SELECT
+  pizza_id,
+  CAST(topping AS INTEGER) AS topping_id -- Assuming topping_id should be an integer
+FROM temp_pizza_recipes
+LATERAL VIEW EXPLODE(toppings_array) AS topping;
+```
 ### 1. What are the standard ingredients for each pizza?
 ```sql
-select pn.pizza_name , pt.topping_name 
-from pz_recipie pr 
-inner join pizza_names pn
-on pn.pizza_id = pr.pizza_id 
-left join pizza_toppings pt 
-on pt.topping_id = pr.Toppings ;
+SELECT
+  pn.pizza_name,
+  array_join(collect_set(pt.topping_name), ', ')  as toppings
+FROM
+  pizza_runner.pizza_recipes AS pr
+LEFT JOIN pizza_runner.pizza_names AS pn 
+ON pr.pizza_id = pn.pizza_id
+left join pizza_runner.pizza_toppings pt
+on pt.topping_id = pr.topping_id
+group by 1;
 ```
+
+### Updating the Customer_orders table
+```sql
+UPDATE pizza_runner.customer_orders
+SET extras = NULL
+WHERE extras IN ('', 'null');
+
+UPDATE pizza_runner.customer_orders
+SET exclusions = NULL
+WHERE exclusions IN ('', 'null');
+```
+
+
+;
+### Transforming Customer_orders table
+```sql
+CREATE OR REPLACE TEMP VIEW temp_cust_orders AS
+SELECT
+  order_id,
+  customer_id,
+  pizza_id,
+  order_time,
+  SPLIT(extras, ', ') AS extra_array,
+  SPLIT(exclusions, ', ') AS exclusions_array
+FROM pizza_runner.customer_orders;
+
+
+-- Assuming topping_id should be an integer, hence casting extras and exclusions as INTEGER
+CREATE OR REPLACE TABLE pizza_runner.customer_orders AS
+SELECT
+  order_id,
+  customer_id,
+  pizza_id,
+  order_time,
+  CAST(extra_id AS INTEGER) AS extra_id,
+  CAST(exclusion_id AS INTEGER) AS exclusion_id
+FROM temp_cust_orders
+LATERAL VIEW EXPLODE(extra_array) temp_cust_orders AS extra_id
+LATERAL VIEW EXPLODE(exclusions_array) temp_cust_orders AS exclusion_id;
+```
+
 ### 2. What was the most commonly added extra?
 ```sql
-
+select pt.topping_name, count(pt.topping_name) no_of_orders
+ from pizza_runner.customer_orders co 
+inner join pizza_runner.pizza_toppings pt
+on pt.topping_id = co.extra_id
+group by 1 
+order by 2 desc;
 ```
 ### 3. What was the most common exclusion?
 ```sql
-WITH RECURSIVE
-  unwound AS (
-    SELECT *
-      FROM pizza_recipes
-    UNION ALL
-    SELECT pizza_id , regexp_replace(toppings , '^[^,]*,', '') topp
-      FROM unwound
-      WHERE toppings LIKE '%,%'
-  )
-  SELECT pizza_id, regexp_replace(toppings, ',.*', '') topp
-    FROM unwound
-    ORDER BY pizza_id
-;
-
-create table co1(
-	select 	row_number() over() as transaction_id,
-			order_id,
-			customer_id,
-			pizza_id,
-			order_time 
-	from customer_orders1 co
-	order by order_id) ;
-
-create table extras (
-	select row_number() over() as transaction_id,
-			left(extras, 1) as extras,
-			left(exclusions, 1) as exclusions 
-	from customer_orders1 co
-	order by order_id);
-
--- Added 2 rows manually 
-
-select * from extras e;
-
-
-select pt.topping_name , count(*) most_common
-from extras e 
-left join pizza_toppings pt 
-on pt.topping_id = e.extras 
-where e.extras is not null
-group by pt.topping_name;
--- What was the most common exclusion?
-select pt.topping_name , count(*) most_common
-from extras e 
-left join pizza_toppings pt 
-on pt.topping_id = e.exclusions  
-where e.exclusions  is not null
-group by pt.topping_name;
+select pt.topping_name, count(pt.topping_name) no_of_orders
+ from pizza_runner.customer_orders co 
+inner join pizza_runner.pizza_toppings pt
+on pt.topping_id = co.exclusion_id
+group by 1 
+order by 2 desc;
 ```
 ### 4. Generate an order item for each record in the customers_orders table in the format of one of the following:
 - `Meat Lovers`
@@ -386,16 +408,108 @@ group by pt.topping_name;
 - `Meat Lovers - Extra Bacon`
 - `Meat Lovers - Exclude Cheese, Bacon - Extra Mushroom, Peppers`
 ```sql
-
+select
+  co.order_id,
+  pn.pizza_name,
+  -- array_join(collect_set(pt1.topping_name), ', ') exclusion_list,
+  -- array_join(collect_set(pt2.topping_name), ', ') extra_list,
+  -- concat(
+  --   pn.pizza_name,
+  --   " - Exlclude ",
+  --   array_join(collect_set(pt1.topping_name), ', '),
+  --   ", - Extra ",
+  --   array_join(collect_set(pt2.topping_name), ', ')
+  -- ),
+  case
+    when array_join(collect_set(pt1.topping_name), ', ') = ''
+    and array_join(collect_set(pt2.topping_name), ', ') = '' then pn.pizza_name
+    when array_join(collect_set(pt1.topping_name), ', ') = '' then concat(
+      pn.pizza_name,
+      " - Extra ",
+      array_join(collect_set(pt2.topping_name), ', ')
+    )
+    when
+    array_join(collect_set(pt2.topping_name), ', ') = '' then concat(
+      pn.pizza_name,
+      " - Exlclude ",
+      array_join(collect_set(pt1.topping_name), ', ')
+    )
+    else concat(
+      pn.pizza_name,
+      " - Exlclude ",
+      array_join(collect_set(pt1.topping_name), ', '),
+      " - Extra ",
+      array_join(collect_set(pt2.topping_name), ', ')
+    )
+  end as final_order
+from
+  pizza_runner.customer_orders co
+  left join pizza_runner.pizza_toppings pt1 on pt1.topping_id = co.exclusion_id
+  left join pizza_runner.pizza_toppings pt2 on pt2.topping_id = co.extra_id
+  left join pizza_runner.pizza_names pn on pn.pizza_id = co.pizza_id
+group by
+  1,
+  2
+order by
+  1;
 ```
 ### 5. Generate an alphabetically ordered comma-separated ingredient list for each pizza order from the customer_orders table and add a `2x` in front of any relevant ingredients
     - For example: "Meat Lovers: 2xBacon, Beef, ... , Salami"
 ```sql
+with cte1 as (
+  SELECT
+  co.order_id,
+  co.pizza_id,
+  co.extra_id,
+  pr.topping_id,
+  pt.topping_name,
+  CASE
+    WHEN co.extra_id = pr.topping_id THEN '2x-'
+    ELSE null
+  END AS alias
+FROM
+  pizza_runner.customer_orders co
+LEFT JOIN pizza_runner.pizza_recipes pr ON pr.pizza_id = co.pizza_id
+LEFT JOIN pizza_runner.pizza_toppings pt ON pt.topping_id = pr.topping_id
+group by 1, 2, 3, 4, pt.topping_name
+ORDER BY
+  co.order_id,
+  co.pizza_id,
+  pt.topping_name),
+cte2 as (
+select c.order_id, 
+  pn.pizza_name, 
+  -- c.topping_name, 
+  -- c.alias, 
+  case when c.alias is null then c.topping_name
+  else concat(c.alias, c.topping_name) end as combined
+from cte1 c
+left join pizza_runner.pizza_names pn on pn.pizza_id = c.pizza_id
+qualify row_number() over(partition by c.order_id, c.pizza_id, c.topping_name order by c.order_id, c.pizza_id, c.topping_name, c.alias desc) = 1
+order by 1, 2, c.topping_name)
+select order_id, concat(pizza_name, "-", array_join(collect_set(combined), ', ')) as  final_order_with_extra
+from cte2
+group by 1, pizza_name
+order by 1 ;
 
 ```
 ### 6. What is the total quantity of each ingredient used in all delivered pizzas sorted by most frequent first?
 ```sql
-
+select
+  pt1.topping_name,
+  sum(case
+    when pt.topping_id = co.extra_id then 2
+    else 1
+  end) as orders
+from
+  pizza_runner.customer_orders co
+  left join pizza_runner.pizza_recipes pt on co.pizza_id = pt.pizza_id
+  left join pizza_runner.pizza_toppings pt1 on pt.topping_id = pt1.topping_id
+where
+  co.exclusion_id is null
+  or pt.topping_id <> co.exclusion_id
+group by 1
+order by 2 desc
 ```
 
 ## **D. Pricing and Ratings**
